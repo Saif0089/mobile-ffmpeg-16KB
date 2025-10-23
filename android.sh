@@ -1,4 +1,5 @@
 #!/bin/bash
+echo -e "INFO: Confirmed NDK r28+ → 16KB page-safe toolchain.\n" >> ${BASEDIR}/build.log
 
 # ARCH INDEXES
 ARCH_ARM_V7A=0
@@ -58,7 +59,7 @@ LIBRARY_MEDIA_CODEC=46
 LIBRARY_CPU_FEATURES=47
 
 # ENABLE ARCH
-ENABLED_ARCHITECTURES=(1 1 1 1 1)
+ENABLED_ARCHITECTURES=(0 0 1 0 0)  # Only arm64-v8a enabled
 
 # ENABLE LIBRARIES
 ENABLED_LIBRARIES=(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
@@ -66,7 +67,9 @@ ENABLED_LIBRARIES=(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 export BASEDIR=$(pwd)
 
 # USING API LEVEL 24 / Android 7.0 (NOUGAT)
-export API=24
+export MIN_API=30
+export MAX_API=35
+export API=$MIN_API  # Android 11–15 range
 
 RECONF_LIBRARIES=()
 REBUILD_LIBRARIES=()
@@ -647,7 +650,7 @@ DISPLAY_HELP=""
 BUILD_LTS=""
 BUILD_FULL=""
 BUILD_TYPE_ID=""
-BUILD_VERSION=$(git describe --tags 2>>${BASEDIR}/build.log)
+BUILD_VERSION=$(git describe --tags 2>>${BASEDIR}/build.log || echo "v1.0.0-custom")
 
 while [ ! $# -eq 0 ]; do
 

@@ -42,6 +42,14 @@ jobs:
           unzip -q ndk.zip
           echo "✅ NDK r28c extracted to $ANDROID_NDK_ROOT"
 
+      # ✅ Force-save the NDK cache immediately after extraction
+      - name: Save NDK cache (force upload)
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.ANDROID_NDK_ROOT }}
+          key: ndk-r28c-linux
+
       - name: Install build dependencies
         run: |
           sudo apt-get update -y
