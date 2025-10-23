@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required for git describe
 
       # 1) Set SDK/NDK paths the runner provides and auto-pick the latest NDK
       - name: Detect Android SDK/NDK
@@ -88,6 +90,12 @@ jobs:
             /tmp/test.c -o /tmp/test
           file /tmp/test
           echo "Sanity OK"
+
+      # 6️⃣ Prepare git submodules (required for FFmpeg + dependencies)
+      - name: Prepare git submodules
+        run: |
+          git submodule sync
+          git submodule update --init --recursive
 
       # 6) Build per README (android.sh)
       - name: Build (android.sh)
