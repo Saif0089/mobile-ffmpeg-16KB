@@ -12,7 +12,7 @@ jobs:
     env:
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
       ANDROID_NDK_ROOT: ${{ github.workspace }}/android-ndk-r28c
-      API_LEVEL: 30 # Android 11 minSdk
+      API_LEVEL: 24 # Android 11 minSdk
       TARGET_SDK: 35 # Android 15 target
 
     steps:
