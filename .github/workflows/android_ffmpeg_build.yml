@@ -41,13 +41,21 @@ jobs:
         with:
           distribution: "adopt"
           java-version: "17"
-      - name: prerequisites
+      - name: Install build prerequisites
         run: |
           sudo apt-get update -y && sudo apt-get install -y \
             autoconf automake libtool pkg-config curl git \
-            cmake gcc g++ gperf texinfo yasm nasm bison autogen patch make
+            cmake gcc g++ gperf texinfo yasm nasm bison autogen patch make \
+            m4 perl
 
-          ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall "cmake;3.10.2.4988404" "cmake;3.18.1"
+          # create legacy symlinks to satisfy shine build (expects automake 1.15)
+          sudo ln -sf /usr/bin/aclocal /usr/bin/aclocal-1.15
+          sudo ln -sf /usr/bin/automake /usr/bin/automake-1.15
+
+          # uninstall conflicting cmake versions from Android SDK
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall \
+            "cmake;3.10.2.4988404" "cmake;3.18.1"
+
       - name: set up android ndk r25 (16k support)
         run: |
           curl -L -s "https://dl.google.com/android/repository/android-ndk-r21e-linux-x86_64.zip" -o ndk.zip
