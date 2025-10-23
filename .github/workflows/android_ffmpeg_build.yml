@@ -50,7 +50,7 @@ jobs:
           echo "ANDROID_NDK_ROOT=$PWD/.ndk/$(ls .ndk)" >> $GITHUB_ENV
       - name: run the build script
         run: |
-          export NDK_PROJECT_PATH=$(pwd)/android/jni/Android.mk
+          export NDK_PROJECT_PATH=$(pwd)/android/
           ./android.sh -d --lts --enable-android-media-codec --enable-android-zlib --disable-arm-v7a
       - name: prepare and upload lts aar
         run: |
