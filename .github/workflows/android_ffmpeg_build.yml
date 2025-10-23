@@ -77,23 +77,24 @@ jobs:
           # run the LTS debug build for arm64 only
           ./android.sh \
           --force \
-          --enable-gpl \
+          # --enable-gpl \
           --disable-arm-v7a \
           --disable-x86-64 \
           --disable-arm-v7a-neon \
           --disable-x86 \
-          --full \
-          --enable-libvidstab \
-          --enable-rubberband \
-          --enable-x264 \
-          --enable-x265 \
-          --enable-xvidcore \
-          --reconf-LIBRARY \
-          --redownload-LIBRARY \
-          --rebuild-LIBRARY
+          # --full \
+          # --enable-libvidstab \
+          # --enable-rubberband \
+          # --enable-x264 \
+          # --enable-x265 \
+          # --enable-xvidcore \
+          # --reconf-LIBRARY \
+          # --redownload-LIBRARY \
+          # --rebuild-LIBRARY
 
-          # show final output
-          ls -R
+      - name: show all
+        if: always()
+        run: ls -lR
 
       - name: prepare and upload lts aar
         run: |
