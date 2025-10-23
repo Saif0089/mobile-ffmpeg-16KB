@@ -1,12 +1,9 @@
-name: Build Android FFmpeg (API30–35, arm64, 16KB-ready)
+name: Build Android FFmpeg (NDK r28c, 16KB safe)
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - "android.sh"
-      - ".github/workflows/android_ffmpeg_build.yml"
 
 jobs:
   build:
@@ -15,14 +12,16 @@ jobs:
     env:
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
       ANDROID_NDK_ROOT: ${{ github.workspace }}/android-ndk-r28c
-      API_LEVEL: 30 # Build native libs against Android 11 (minSdkVersion)
-      TARGET_SDK: 35 # Target latest Android 15 for Gradle
+      API_LEVEL: 30 # Android 11 min
+      TARGET_SDK: 35 # Android 15 target
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (full history)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # <-- important for git describe to work
 
-      - name: Set up Java (for Gradle)
+      - name: Set up Java (Gradle)
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
@@ -32,24 +31,24 @@ jobs:
         run: |
           wget https://dl.google.com/android/repository/android-ndk-r28c-linux.zip
           unzip -q android-ndk-r28c-linux.zip
-          echo "✅ NDK r28c extracted to $ANDROID_NDK_ROOT"
+          echo "✅ NDK r28c ready at $ANDROID_NDK_ROOT"
 
-      - name: Install required build tools
+      - name: Install build dependencies
         run: |
           sudo apt-get update -y
           sudo apt-get install -y git unzip zip curl build-essential python3 openjdk-17-jdk
 
-      - name: Make build script executable
-        run: chmod +x android.sh
-
-      - name: Patch Gradle targetSdkVersion to 35 (if present)
+      - name: Patch Gradle SDK versions (if present)
         run: |
           if [ -f android/app/build.gradle ]; then
             sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle
             sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 30/' android/app/build.gradle
           fi
 
-      - name: Build FFmpeg (arm64-v8a only, API 30)
+      - name: Make build script executable
+        run: chmod +x android.sh
+
+      - name: Build FFmpeg (arm64 only, API 30)
         run: |
           export API=$API_LEVEL
           ./android.sh \
@@ -68,5 +67,5 @@ jobs:
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mobile-ffmpeg-aar
+          name: mobile-ffmpeg-ndk-r28c-arm64
           path: build-output
