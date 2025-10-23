@@ -48,13 +48,13 @@ jobs:
             cmake gcc g++ gperf texinfo yasm nasm bison autogen patch make \
             m4 perl
 
-          # create legacy symlinks to satisfy shine build (expects automake 1.15)
+          # legacy symlinks for older libraries like shine
           sudo ln -sf /usr/bin/aclocal /usr/bin/aclocal-1.15
           sudo ln -sf /usr/bin/automake /usr/bin/automake-1.15
 
-          # uninstall conflicting cmake versions from Android SDK
+          # uninstall older cmake versions if they exist (ignore errors)
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall \
-            "cmake;3.10.2.4988404" "cmake;3.18.1"
+            "cmake;3.10.2.4988404" "cmake;3.18.1" || true
 
       - name: set up android ndk r25 (16k support)
         run: |
