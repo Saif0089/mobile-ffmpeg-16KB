@@ -1,4 +1,4 @@
-name: Build MobileFFmpeg (Android)
+name: Build MobileFFmpeg (Android, arm64-v8a)
 
 on:
   workflow_dispatch:
@@ -12,16 +12,14 @@ concurrency:
 
 jobs:
   android:
-    name: Android Build (ubuntu-latest)
+    name: Android (ubuntu-latest, arm64-v8a only)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # required for git describe
 
-      # 1) Set SDK/NDK paths the runner provides and auto-pick the latest NDK
+      # 1) Detect SDK/NDK on ubuntu-latest
       - name: Detect Android SDK/NDK
         shell: bash
         run: |
@@ -29,13 +27,11 @@ jobs:
           SDK="/usr/local/lib/android/sdk"
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
-          # Pick the latest installed NDK by version
           LATEST_NDK="$(ls -1 "$SDK/ndk" | sort -V | tail -n1)"
           NDK="$SDK/ndk/$LATEST_NDK"
           echo "Using NDK: $NDK"
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
-          # Add LLVM toolchain to PATH the right way
           echo "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin" >> "$GITHUB_PATH"
 
       - name: Show Android environment
@@ -46,7 +42,7 @@ jobs:
           echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT"
           ls -la "$ANDROID_SDK_ROOT/ndk" || true
 
-      # 2) Install build prereqs from README
+      # 2) Prereqs from README
       - name: Install prerequisites
         shell: bash
         run: |
@@ -55,28 +51,45 @@ jobs:
             autoconf automake libtool pkg-config curl cmake gcc gperf texinfo \
             yasm nasm bison autogen patch git
 
-      # 3) Sanity: show toolchain versions
-      - name: Toolchain sanity (versions)
+      # 3) Toolchain sanity
+      - name: Toolchain sanity
         shell: bash
         run: |
-          clang --version || true
           aarch64-linux-android24-clang --version
+          clang --version || true
 
-      # 4) Force lld and clean flags (defensive – in case scripts read these)
-      - name: Ensure lld + safe flags
+      # 4) Force lld + safe flags, and PATCH android.sh to build ONLY arm64-v8a
+      - name: Configure flags and limit arch to arm64-v8a
         shell: bash
         run: |
+          # Flags (ThinLTO + lld); remove any gold or legacy platform paths later if present in script
           echo 'CFLAGS=-O2 -ffunction-sections -fdata-sections -flto=thin' >> "$GITHUB_ENV"
           echo 'LDFLAGS=-Wl,--gc-sections -flto=thin -fuse-ld=lld' >> "$GITHUB_ENV"
-          # If your android.sh accidentally forces gold or old platform paths, strip them
-          if [[ -f android.sh ]]; then
-            sed -i -E 's/-fuse-ld=gold//g' android.sh || true
-            sed -i -E 's|-L[^ ]*/android-ndk-r[0-9a-z]+/platforms/android-[0-9]+/arch-[^ ]+[^ ]*||g' android.sh || true
-            sed -i -E 's/-D__ANDROID_API__=[0-9]+//g' android.sh || true
-            chmod +x android.sh
-          fi
 
-      # 5) Link sanity test using lld
+          # If your script reads an env var for archs, set it too (harmless if unused)
+          echo 'ARCHITECTURES=arm64-v8a' >> "$GITHUB_ENV"
+          echo 'FF_ARCHS=arm64-v8a' >> "$GITHUB_ENV"
+
+          # Make script executable
+          chmod +x android.sh
+
+          # 4a) Strip gold + old platform paths + manual __ANDROID_API__ defines if present
+          sed -i -E 's/-fuse-ld=gold//g' android.sh || true
+          sed -i -E 's|-L[^ ]*/android-ndk-r[0-9a-z]+/platforms/android-[0-9]+/arch-[^ ]+[^ ]*||g' android.sh || true
+          sed -i -E 's/-D__ANDROID_API__=[0-9]+//g' android.sh || true
+
+          # 4b) Patch common patterns that list multiple ABIs -> set to arm64-v8a only
+          # Matches lines like: ARCHITECTURES="arm-v7a-neon, arm64-v8a, x86, x86-64"
+          sed -i -E 's/^(ARCH(ITECTURES)?=).*/\1"arm64-v8a"/' android.sh || true
+          # Matches an echo/banner line "Architectures: ..."
+          sed -i -E 's/^(.*Architectures:).*/\1 arm64-v8a/' android.sh || true
+          # If script has a comma list elsewhere, collapse to arm64-v8a
+          sed -i -E 's/arm-v7a(-neon)?//g; s/x86-64//g; s/x86//g; s/,,/,/g; s/, *$//' android.sh || true
+
+          echo "==== android.sh (first 60 lines) ===="
+          head -n 60 android.sh || true
+
+      # 5) Link sanity test with lld (arm64)
       - name: Link sanity test (lld)
         shell: bash
         run: |
@@ -91,27 +104,30 @@ jobs:
           file /tmp/test
           echo "Sanity OK"
 
-      # 6️⃣ Prepare git submodules (required for FFmpeg + dependencies)
-      - name: Prepare git submodules
-        run: |
-          git submodule sync
-          git submodule update --init --recursive
-
-      # 6) Build per README (android.sh)
+      # 6) Build (android.sh) – ARM64 only
       - name: Build (android.sh)
         shell: bash
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
+          ARCHITECTURES: ${{ env.ARCHITECTURES }}
+          FF_ARCHS: ${{ env.FF_ARCHS }}
+          CFLAGS: ${{ env.CFLAGS }}
+          LDFLAGS: ${{ env.LDFLAGS }}
         run: |
           set -euo pipefail
+          set -x
           ./android.sh
 
-      # 7) Upload prebuilt results
-      - name: Upload prebuilt artifacts
+      # 7) Always upload logs + prebuilt outputs (helps if anything fails)
+      - name: Upload build logs and artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: prebuilt-android
-          path: prebuilt/**
+          name: build-outputs-and-logs
+          path: |
+            prebuilt/**
+            **/*.log
+            build/**/config.log
+            ffbuild/**/config.log
           if-no-files-found: warn
