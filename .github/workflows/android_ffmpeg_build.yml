@@ -73,13 +73,10 @@ jobs:
 
       - name: Build FFmpeg (arm64-only, API 30)
         run: |
-          chmod +x android.sh
+          export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
+          export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
           export API=$API_LEVEL
-          ./android.sh \
-            --disable-arm-v7a \
-            --disable-arm-v7a-neon \
-            --disable-x86 \
-            --disable-x86-64
+          ./android.sh -d --lts --full --enable-gpl --disable-arm-v7a
 
       - name: Show build log (if exists)
         if: always()
