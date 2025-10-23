@@ -77,11 +77,11 @@ jobs:
           # run the LTS debug build for arm64 only
           ./android.sh \
           --force \
-          # --enable-gpl \
           --disable-arm-v7a \
           --disable-x86-64 \
           --disable-arm-v7a-neon \
           --disable-x86 \
+          # --enable-gpl \
           # --full \
           # --enable-libvidstab \
           # --enable-rubberband \
