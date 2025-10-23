@@ -3,7 +3,7 @@ name: Build Android FFmpeg (NDK r28c, cached, 16KB safe)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   build:
