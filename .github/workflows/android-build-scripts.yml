@@ -27,7 +27,7 @@ on:
 
 jobs:
   build-main-on-linux:
-    name: android main on linux (ndk-r25-16k)
+    name: android main on linux (ndk-r28-16k)
     runs-on: ubuntu-22.04
     defaults:
       run:
@@ -45,11 +45,21 @@ jobs:
           java-version: "17"
       - name: prerequisites
         run: ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall "cmake;3.10.2.4988404" "cmake;3.18.1"
-      - name: set up android ndk r25 (16k support)
+      - name: set up Android NDK r28 (16k support)
         run: |
-          curl -L -s "https://storage.googleapis.com/android-build/builds/aosp-ndk-release-r23-linux-linux/12186248/38c84da1ab0dd31ea40c857d2c9ee77450d9d71d76e60ac2ccd33d379babc534/android-ndk-12186248-linux-x86_64.zip?GoogleAccessId=gcs-sign%40android-builds-project.google.com.iam.gserviceaccount.com&Expires=1753821804&Signature=HKQJTqNSRtaAveX4C8sOom1Yc6SF3FCDSMcdz2HPuBMvAhspFd694g%2FXo9%2FFDBoi9otnp4FhTIi272AhCdf4iL6eybaZVhf9y1GgtxTrNhXH3%2BCMcoAUfkmhZzFX6N7yvvohi8ikfay6RVF7y3%2BguKLOA%2B4QOr4CTSy8FnSFbfWMB2m0%2BfB%2BE9QGjc4QjWSXJcMbFn2vhcDGEOQgJepXmuWRzUqdmZF%2FWNpuiCcMRsSFroiqmZcMZy2uPmrxD9BkBlFlMMjWXx1BRYJsd5vSEEx7Q5DyD%2FNwIbsftV2tDMjTQbUucnQ8oUo2VLcOCKeRjGVymGz66esLaP6AJu2bGg%3D%3D" -o ndk.zip
-          unzip -q -o ndk.zip -d .ndk
-          echo "ANDROID_NDK_ROOT=$PWD/.ndk/$(ls .ndk)" >> $GITHUB_ENV
+          set -euxo pipefail
+          # Install NDK r28 via sdkmanager. If sdkmanager doesn't have an exact numeric label in the runner,
+          # this attempts to install the platform component named for r28. Adjust the component name if your
+          # environment requires a different identifier (for example, 'ndk;28.0.25739011').
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_HOME} "ndk;28.0.0" || true
+          # Pick the most recent ndk folder installed under $ANDROID_HOME/ndk
+          NDK_PATH=$(ls -d ${ANDROID_HOME}/ndk/* 2>/dev/null | sort || true | tail -n1)
+          if [ -z "$NDK_PATH" ]; then
+            echo "ERROR: failed to locate installed NDK under ${ANDROID_HOME}/ndk"
+            ls -la ${ANDROID_HOME} || true
+            exit 1
+          fi
+          echo "ANDROID_NDK_ROOT=$NDK_PATH" >> $GITHUB_ENV
       - name: run the build script
         env:
           ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
@@ -72,7 +82,11 @@ jobs:
           git fetch --unshallow || true
 
           # 3) Run build exactly like your original flags
-          ./android.sh -d --enable-android-media-codec --enable-android-zlib --disable-arm-v7a
+          # Use NDK r28 and build for ARM64 only. NDK r28 defaults are compatible with 16KB pages so
+          # no explicit --page-size is required. We still explicitly disable 32-bit ABIs to ensure only
+          # arm64 builds are produced.
+          ./android.sh -d --enable-android-media-codec --enable-android-zlib \
+            --disable-arm-v7a --disable-arm-v7a-neon --disable-x86 --disable-x86-64
 
             - name: prepare and upload main aar
               run: |
@@ -81,7 +95,7 @@ jobs:
                   echo "Error: ffmpeg-kit.aar not found in prebuilt directory."
                   exit 1
                 fi
-                mv "$AAR_PATH" "ffmpeg-kit-main-ndk-r25-16k.aar"
+                mv "$AAR_PATH" "ffmpeg-kit-main-ndk-r28-16k.aar"
             - uses: actions/upload-artifact@v4
               with:
                 name: ffmpeg-kit-main-aar
@@ -113,11 +127,17 @@ jobs:
           java-version: "17"
       - name: prerequisites
         run: ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall "cmake;3.10.2.4988404" "cmake;3.18.1"
-      - name: set up android ndk r25 (16k support)
+      - name: set up Android NDK r28 (16k support)
         run: |
-          curl -L -s "https://storage.googleapis.com/android-build/builds/aosp-ndk-release-r23-linux-linux/12186248/38c84da1ab0dd31ea40c857d2c9ee77450d9d71d76e60ac2ccd33d379babc534/android-ndk-12186248-linux-x86_64.zip?GoogleAccessId=gcs-sign%40android-builds-project.google.com.iam.gserviceaccount.com&Expires=1753821804&Signature=HKQJTqNSRtaAveX4C8sOom1Yc6SF3FCDSMcdz2HPuBMvAhspFd694g%2FXo9%2FFDBoi9otnp4FhTIi272AhCdf4iL6eybaZVhf9y1GgtxTrNhXH3%2BCMcoAUfkmhZzFX6N7yvvohi8ikfay6RVF7y3%2BguKLOA%2B4QOr4CTSy8FnSFbfWMB2m0%2BfB%2BE9QGjc4QjWSXJcMbFn2vhcDGEOQgJepXmuWRzUqdmZF%2FWNpuiCcMRsSFroiqmZcMZy2uPmrxD9BkBlFlMMjWXx1BRYJsd5vSEEx7Q5DyD%2FNwIbsftV2tDMjTQbUucnQ8oUo2VLcOCKeRjGVymGz66esLaP6AJu2bGg%3D%3D" -o ndk.zip
-          unzip -q -o ndk.zip -d .ndk
-          echo "ANDROID_NDK_ROOT=$PWD/.ndk/$(ls .ndk)" >> $GITHUB_ENV
+          set -euxo pipefail
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_HOME} "ndk;28.0.0" || true
+          NDK_PATH=$(ls -d ${ANDROID_HOME}/ndk/* 2>/dev/null | sort || true | tail -n1)
+          if [ -z "$NDK_PATH" ]; then
+            echo "ERROR: failed to locate installed NDK under ${ANDROID_HOME}/ndk"
+            ls -la ${ANDROID_HOME} || true
+            exit 1
+          fi
+          echo "ANDROID_NDK_ROOT=$NDK_PATH" >> $GITHUB_ENV
       - name: run the build script
         env:
           ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
@@ -131,27 +151,28 @@ jobs:
           git rev-parse --is-inside-work-tree
           git fetch --tags --prune --force || true
           git fetch --unshallow || true
-          ./android.sh -d --lts --enable-android-media-codec --enable-android-zlib
+          ./android.sh -d --lts --enable-android-media-codec --enable-android-zlib \
+            --disable-arm-v7a --disable-arm-v7a-neon --disable-x86 --disable-x86-64
 
-            - name: prepare and upload lts aar
-              run: |
-                AAR_PATH=$(find prebuilt -type f -name 'ffmpeg-kit.aar')
-                if [ -z "$AAR_PATH" ]; then
-                  echo "Error: ffmpeg-kit.aar not found in prebuilt directory."
-                  exit 1
-                fi
-                mv "$AAR_PATH" "ffmpeg-kit-lts-ndk-r25-16k.aar"
-            - uses: actions/upload-artifact@v4
-              with:
-                name: ffmpeg-kit-lts-aar
-                path: ffmpeg-kit-lts-ndk-r25-16k.aar
-                if-no-files-found: error
-            - name: print build logs
-              if: always()
-              run: cat build.log
-            - name: print ffbuild logs
-              if: failure()
-              run: "[[ -f ./src/ffmpeg/ffbuild/config.log ]] && tail -50 ./src/ffmpeg/ffbuild/config.log"
+      - name: prepare and upload lts aar
+        run: |
+          AAR_PATH=$(find prebuilt -type f -name 'ffmpeg-kit.aar')
+          if [ -z "$AAR_PATH" ]; then
+            echo "Error: ffmpeg-kit.aar not found in prebuilt directory."
+            exit 1
+          fi
+          mv "$AAR_PATH" "ffmpeg-kit-lts-ndk-r28-16k.aar"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-kit-lts-aar
+          path: ffmpeg-kit-lts-ndk-r25-16k.aar
+          if-no-files-found: error
+      - name: print build logs
+        if: always()
+        run: cat build.log
+      - name: print ffbuild logs
+        if: failure()
+        run: "[[ -f ./src/ffmpeg/ffbuild/config.log ]] && tail -50 ./src/ffmpeg/ffbuild/config.log"
 
   create-release:
     name: create github release
@@ -176,7 +197,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: "Android AARs (NDK r25-16k) - ${{ env.TAG_NAME }}"
-          body: "Automated release of Android AAR files from Linux builds using NDK r25 with 16kB page size support."
+          name: "Android AARs (NDK r28-16k) - ${{ env.TAG_NAME }}"
+          body: "Automated release of Android AAR files from Linux builds using NDK r28 with 16kB page size support."
           prerelease: true
           files: aar-artifacts/*/*.aar
