@@ -75,21 +75,22 @@ jobs:
           export -f ndk-build
 
           # run the LTS debug build for arm64 only
-          ./android.sh --full \
-            --enable-libvidstab \
-            --enable-rubberband \
-            --disable-arm-v7a \
-            --enable-x264 \
-            --enable-x265 \
-            --enable-xvidcore \
-            --disable-x86 \
-            --disable-x86-64 \
-            --disable-arm-v7a-neon \
-            --reconf-LIBRARY \
-            --redownload-LIBRARY \
-            --rebuild-LIBRARY
-            --enable-gpl \
-            --force
+          ./android.sh \
+          --force \
+          --enable-gpl \
+          --disable-arm-v7a \
+          --disable-x86-64 \
+          --disable-arm-v7a-neon \
+          --disable-x86 \
+          --full \
+          --enable-libvidstab \
+          --enable-rubberband \
+          --enable-x264 \
+          --enable-x265 \
+          --enable-xvidcore \
+          --reconf-LIBRARY \
+          --redownload-LIBRARY \
+          --rebuild-LIBRARY
 
           # show final output
           ls -R
