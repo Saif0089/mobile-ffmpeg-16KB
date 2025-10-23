@@ -88,10 +88,10 @@ jobs:
                 path: ffmpeg-kit-main-ndk-r25-16k.aar
                 if-no-files-found: error
             - name: print build logs
-              if: ${{ always() }}
+              if: always()
               run: cat build.log
             - name: print ffbuild logs
-              if: ${{ failure() }}
+              if: failure()
               run: "[[ -f ./src/ffmpeg/ffbuild/config.log ]] && tail -50 ./src/ffmpeg/ffbuild/config.log"
 
   build-lts-on-linux:
@@ -147,10 +147,10 @@ jobs:
                 path: ffmpeg-kit-lts-ndk-r25-16k.aar
                 if-no-files-found: error
             - name: print build logs
-              if: ${{ always() }}
+              if: always()
               run: cat build.log
             - name: print ffbuild logs
-              if: ${{ failure() }}
+              if: failure()
               run: "[[ -f ./src/ffmpeg/ffbuild/config.log ]] && tail -50 ./src/ffmpeg/ffbuild/config.log"
 
   create-release:
