@@ -1,9 +1,9 @@
-name: Build Android FFmpeg (NDK r28c, cached, 16KB safe)
+name: Build MobileFFmpeg for Android (NDK r28c)
 
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   build:
@@ -12,27 +12,23 @@ jobs:
     env:
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
       ANDROID_NDK_ROOT: ${{ github.workspace }}/android-ndk-r28c
-      API_LEVEL: 24 # Android 11 minSdk
-      TARGET_SDK: 35 # Android 15 target
 
     steps:
-      - name: Checkout repository (full history)
+      # 1️⃣ Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # needed for git describe
+          fetch-depth: 0 # required for git describe
 
-      - name: Prepare git submodules
+      # 2️⃣ Install required system dependencies
+      - name: Install build dependencies
         run: |
-          sudo apt-get install -y git
-          git submodule sync
-          git submodule update --init --recursive
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            autoconf automake libtool pkg-config curl cmake gcc gperf texinfo yasm nasm bison autogen patch git \
+            unzip zip build-essential python3 openjdk-17-jdk
 
-      - name: Set up Java (Gradle)
-        uses: actions/setup-java@v4
-        with:
-          distribution: "temurin"
-          java-version: "17"
-
+      # 3️⃣ Download and cache Android NDK r28c
       - name: Cache Android NDK r28c
         id: cache-ndk
         uses: actions/cache@v4
@@ -40,87 +36,59 @@ jobs:
           path: ${{ env.ANDROID_NDK_ROOT }}
           key: ndk-r28c-linux
 
-      - name: Download and extract NDK r28c (if not cached)
+      - name: Download NDK r28c (if not cached)
         if: steps.cache-ndk.outputs.cache-hit != 'true'
         run: |
-          echo "⬇️ Downloading NDK r28c..."
+          echo "⬇️ Downloading Android NDK r28c..."
           wget https://dl.google.com/android/repository/android-ndk-r28c-linux.zip -O ndk.zip
           unzip -q ndk.zip
-          echo "✅ NDK r28c extracted to $ANDROID_NDK_ROOT"
+          echo "✅ NDK extracted to $ANDROID_NDK_ROOT"
 
-      # ✅ Force-save the NDK cache immediately after extraction
-      - name: Save NDK cache (force upload)
-        if: steps.cache-ndk.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.ANDROID_NDK_ROOT }}
-          key: ndk-r28c-linux
-
-      - name: Install build dependencies
+      # 4️⃣ Verify NDK setup
+      - name: Verify NDK toolchain
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y git unzip zip curl build-essential python3 openjdk-17-jdk
+          export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+          aarch64-linux-android24-clang --version || echo "clang not found!"
+          echo "✅ Verified NDK r28c toolchain."
 
-      - name: Patch Gradle SDK versions (if present)
+      # 5️⃣ Prepare Android SDK (optional for some builds)
+      - name: Install Android SDK Command-Line Tools
         run: |
-          if [ -f android/app/build.gradle ]; then
-            sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle
-            sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 30/' android/app/build.gradle
-          fi
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
+          unzip -q tools.zip -d latest
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          echo "✅ Android SDK ready."
 
-      - name: Make build script executable
-        run: chmod +x android.sh
-
-      - name: Build FFmpeg (arm64-only, API 24)
+      # 6️⃣ Prepare git submodules (required for FFmpeg + dependencies)
+      - name: Prepare git submodules
         run: |
-          export API=24
-          export DEFAULT_API=$API
+          git submodule sync
+          git submodule update --init --recursive
+
+      # 7️⃣ Build MobileFFmpeg for Android
+      - name: Build MobileFFmpeg
+        run: |
+          export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
           export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
-          export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
-
-          # Set compiler toolchain
-          export CC="aarch64-linux-android${API}-clang"
-          export CXX="aarch64-linux-android${API}-clang++"
-          export AR="llvm-ar"
-          export AS="llvm-as"
-          export LD="ld.lld"
-          export STRIP="llvm-strip"
-
-          # Tell autotools we're cross-compiling (avoid running test executables)
-          export ac_cv_prog_cc_works=yes
-          export ac_cv_prog_cc_cross=yes
-          export ac_cv_func_malloc_0_nonnull=yes
-          export ac_cv_func_realloc_0_nonnull=yes
+          export ANDROID_NDK=$ANDROID_NDK_ROOT
+          export ANDROID_SDK=$ANDROID_HOME
 
           chmod +x android.sh
-          ./android.sh -d --lts --full --enable-gpl --disable-arm-v7a
+          ./android.sh
 
-      - name: Show build log (if exists)
+      # 8️⃣ Show build logs (if any errors)
+      - name: Show build logs
         if: always()
         run: |
-          echo "🧾 build.log output:"
-          if [ -f build.log ]; then
-            cat build.log | tail -n 200
-          else
-            echo "⚠️ build.log not found in root, trying subdirectories..."
-            find . -type f -name build.log -exec echo "Found:" {} \; -exec tail -n 200 {} \;
-          fi
+          echo "🔍 Searching for build logs..."
+          find . -type f -name build.log -exec echo "--- {} ---" \; -exec tail -n 100 {} \; || true
+          find . -type f -name config.log -exec echo "--- {} ---" \; -exec tail -n 50 {} \; || true
 
-      - name: Show failing config.log (if any)
-        if: always()
-        run: |
-          echo "🔍 Searching for config.log files..."
-          find . -type f -name config.log -exec echo "--- {} ---" \; -exec tail -n 100 {} \;
-
-      - name: Archive prebuilt AAR
-        if: success()
-        run: |
-          mkdir -p build-output
-          cp -r prebuilt/android-aar/* build-output/
-          echo "✅ AAR copied to build-output"
-
-      - name: Upload AAR artifact
+      # 9️⃣ Archive build outputs
+      - name: Upload prebuilt artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mobile-ffmpeg-ndk-r28c-arm64
-          path: build-output
+          name: mobile-ffmpeg-android-prebuilt
+          path: prebuilt/
