@@ -1,4 +1,4 @@
-name: Build Android FFmpeg (NDK r28c, 16KB safe)
+name: Build Android FFmpeg (NDK r28c, cached, 16KB safe)
 
 on:
   workflow_dispatch:
@@ -12,14 +12,14 @@ jobs:
     env:
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
       ANDROID_NDK_ROOT: ${{ github.workspace }}/android-ndk-r28c
-      API_LEVEL: 30 # Android 11 min
+      API_LEVEL: 30 # Android 11 minSdk
       TARGET_SDK: 35 # Android 15 target
 
     steps:
       - name: Checkout repository (full history)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # <-- important for git describe to work
+          fetch-depth: 0 # needed for git describe
 
       - name: Set up Java (Gradle)
         uses: actions/setup-java@v4
@@ -27,11 +27,20 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
-      - name: Download and extract Android NDK r28c
+      - name: Cache Android NDK r28c
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_NDK_ROOT }}
+          key: ndk-r28c-linux
+
+      - name: Download and extract NDK r28c (if not cached)
+        if: steps.cache-ndk.outputs.cache-hit != 'true'
         run: |
-          wget https://dl.google.com/android/repository/android-ndk-r28c-linux.zip
-          unzip -q android-ndk-r28c-linux.zip
-          echo "✅ NDK r28c ready at $ANDROID_NDK_ROOT"
+          echo "⬇️ Downloading NDK r28c..."
+          wget https://dl.google.com/android/repository/android-ndk-r28c-linux.zip -O ndk.zip
+          unzip -q ndk.zip
+          echo "✅ NDK r28c extracted to $ANDROID_NDK_ROOT"
 
       - name: Install build dependencies
         run: |
@@ -48,7 +57,7 @@ jobs:
       - name: Make build script executable
         run: chmod +x android.sh
 
-      - name: Build FFmpeg (arm64 only, API 30)
+      - name: Build FFmpeg (arm64-only, API 30)
         run: |
           export API=$API_LEVEL
           ./android.sh \
