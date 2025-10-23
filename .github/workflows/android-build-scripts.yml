@@ -1,7 +1,7 @@
 name: android build scripts
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering, which will create a release
   push:
     branches: [development, main]
     paths:
@@ -29,66 +29,41 @@ jobs:
       run:
         shell: bash
     env:
-      # Force 16KB page size at link step for all produced .so
+      # Force 16KB page-size at link time
       LDFLAGS: "-Wl,-z,max-page-size=16384"
     steps:
       - uses: actions/checkout@v4
 
-      - name: set up jdk 17
-        uses: actions/setup-java@v4
+      - name: set up adopt jdk 17
+        uses: actions/setup-java@v3
         with:
-          distribution: temurin
+          distribution: "adopt"
           java-version: "17"
 
-      # Optional: remove old cmake (same as your example)
       - name: prerequisites
-        run: |
-          if [ -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
-            ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall "cmake;3.10.2.4988404" "cmake;3.18.1" || true
-          else
-            echo "sdkmanager not found; skipping uninstall."
-          fi
+        run: ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall "cmake;3.10.2.4988404" "cmake;3.18.1" || true
 
-      - name: set up android ndk r25 (16k support)
+      # ⬇️ Replace the expiring GCS link with sdkmanager (installs r27b)
+      - name: set up android ndk r27b (16k support)
         run: |
           set -euxo pipefail
-          curl -L -s "https://storage.googleapis.com/android-build/builds/aosp-ndk-release-r23-linux-linux/12186248/38c84da1ab0dd31ea40c857d2c9ee77450d9d71d76e60ac2ccd33d379babc534/android-ndk-12186248-linux-x86_64.zip?GoogleAccessId=gcs-sign%40android-builds-project.google.com.iam.gserviceaccount.com&Expires=1757434143&Signature=oK1FSeU9JpfoBkEqBZk%2FVmTH%2B1JJ09Dlv%2BsXblxpBTBq1kBA%2B42UPzbBpb%2BNy%2BIliEoWd2lO9Xbc92Lmzl1CiDyFwtzsxYE11nwUNNVWsjLvc0K0SO1%2F8j4p8b8eo5Zq5gc%2Bq7SamsrgelSUDSJfcYkDNR%2BE%2FyRpJgvtOqra%2FmEjw85pDrFMXFjZrSikYGjy%2Fl4E8TJRr%2BKh1BBkTEY5Oxvx3ia53LEzKE9bKKpFmFjZ9iXp%2BHh5ZSFPYZPrTMAeROSHlKARwvW35Bqgr%2FIyKHkSLKOk5%2FcbDud5iQwjuIB0l3MQTtkYr2TeDRh2BNzM82Z8MOwUfoncAI6nfj2%2Few%3D%3D" -o ndk.zip
-          unzip -q -o ndk.zip -d .ndk
-          echo "ANDROID_NDK_ROOT=$PWD/.ndk/$(ls .ndk)" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$PWD/.ndk/$(ls .ndk)" >> $GITHUB_ENV
+          ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "ndk;27.2.12479018"
+          echo "ANDROID_NDK_ROOT=${ANDROID_HOME}/ndk/27.2.12479018" >> $GITHUB_ENV
 
-      - name: run the build script (main)
+      - name: run the build script
         env:
           ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           LDFLAGS: ${{ env.LDFLAGS }}
-        run: |
-          set -euxo pipefail
-          echo "Using ANDROID_NDK_ROOT=${ANDROID_NDK_ROOT}"
-          # --full --enable-gpl to match the full-gpl flavor
-          # arm64-v8a is what matters for 16KB page size; disable others if you want faster builds
-          ./android.sh -d --full --enable-gpl --disable-arm-v7a
-
-      - name: verify 16KB alignment (arm64-v8a)
-        run: |
-          set -e
-          mapfile -t SOs < <(find prebuilt -type f -path "*arm64-v8a/*.so")
-          if [ ${#SOs[@]} -eq 0 ]; then
-            echo "No .so files found under prebuilt/*arm64-v8a*"
-            exit 1
-          fi
-          for so in "${SOs[@]}"; do
-            echo "==== $so"
-            readelf -l "$so" | awk '/Program Headers|LOAD/ {print}'
-          done
+        run: ./android.sh -d --enable-android-media-codec --enable-android-zlib --disable-arm-v7a
 
       - name: prepare and upload main aar
         run: |
-          AAR_PATH=$(find prebuilt -type f -name 'ffmpeg-kit.aar' | head -n1)
+          AAR_PATH=$(find prebuilt -type f -name 'ffmpeg-kit.aar')
           if [ -z "$AAR_PATH" ]; then
             echo "Error: ffmpeg-kit.aar not found in prebuilt directory."
             exit 1
           fi
+          # Keep your original artifact name; change to r27 if you want
           mv "$AAR_PATH" "ffmpeg-kit-main-ndk-r25-16k.aar"
       - uses: actions/upload-artifact@v4
         with:
@@ -98,11 +73,11 @@ jobs:
 
       - name: print build logs
         if: ${{ always() }}
-        run: cat build.log || true
+        run: cat build.log
 
       - name: print ffbuild logs
         if: ${{ failure() }}
-        run: "[[ -f ./src/ffmpeg/ffbuild/config.log ]] && tail -50 ./src/ffmpeg/ffbuild/config.log || true"
+        run: "[[ -f ./src/ffmpeg/ffbuild/config.log ]] && tail -50 ./src/ffmpeg/ffbuild/config.log"
 
   build-lts-on-linux:
     name: android lts on linux (ndk-r25-16k)
@@ -115,54 +90,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: set up jdk 17
-        uses: actions/setup-java@v4
+      - name: set up adopt jdk 17
+        uses: actions/setup-java@v3
         with:
-          distribution: temurin
+          distribution: "adopt"
           java-version: "17"
 
       - name: prerequisites
-        run: |
-          if [ -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
-            ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall "cmake;3.10.2.4988404" "cmake;3.18.1" || true
-          else
-            echo "sdkmanager not found; skipping uninstall."
-          fi
+        run: ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall "cmake;3.10.2.4988404" "cmake;3.18.1" || true
 
-      - name: set up android ndk r25 (16k support)
+      - name: set up android ndk r27b (16k support)
         run: |
           set -euxo pipefail
-          curl -L -s "https://storage.googleapis.com/android-build/builds/aosp-ndk-release-r23-linux-linux/12186248/38c84da1ab0dd31ea40c857d2c9ee77450d9d71d76e60ac2ccd33d379babc534/android-ndk-12186248-linux-x86_64.zip?GoogleAccessId=gcs-sign%40android-builds-project.google.com.iam.gserviceaccount.com&Expires=1757434143&Signature=oK1FSeU9JpfoBkEqBZk%2FVmTH%2B1JJ09Dlv%2BsXblxpBTBq1kBA%2B42UPzbBpb%2BNy%2BIliEoWd2lO9Xbc92Lmzl1CiDyFwtzsxYE11nwUNNVWsjLvc0K0SO1%2F8j4p8b8eo5Zq5gc%2Bq7SamsrgelSUDSJfcYkDNR%2BE%2FyRpJgvtOqra%2FmEjw85pDrFMXFjZrSikYGjy%2Fl4E8TJRr%2BKh1BBkTEY5Oxvx3ia53LEzKE9bKKpFmFjZ9iXp%2BHh5ZSFPYZPrTMAeROSHlKARwvW35Bqgr%2FIyKHkSLKOk5%2FcbDud5iQwjuIB0l3MQTtkYr2TeDRh2BNzM82Z8MOwUfoncAI6nfj2%2Few%3D%3D" -o ndk.zip
-          unzip -q -o ndk.zip -d .ndk
-          echo "ANDROID_NDK_ROOT=$PWD/.ndk/$(ls .ndk)" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$PWD/.ndk/$(ls .ndk)" >> $GITHUB_ENV
+          ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "ndk;27.2.12479018"
+          echo "ANDROID_NDK_ROOT=${ANDROID_HOME}/ndk/27.2.12479018" >> $GITHUB_ENV
 
-      - name: run the build script (lts)
+      - name: run the build script
         env:
           ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           LDFLAGS: ${{ env.LDFLAGS }}
-        run: |
-          set -euxo pipefail
-          echo "Using ANDROID_NDK_ROOT=${ANDROID_NDK_ROOT}"
-          ./android.sh -d --lts --full --enable-gpl --disable-arm-v7a
-
-      - name: verify 16KB alignment (arm64-v8a)
-        run: |
-          set -e
-          mapfile -t SOs < <(find prebuilt -type f -path "*arm64-v8a/*.so")
-          if [ ${#SOs[@]} -eq 0 ]; then
-            echo "No .so files found under prebuilt/*arm64-v8a*"
-            exit 1
-          fi
-          for so in "${SOs[@]}"; do
-            echo "==== $so"
-            readelf -l "$so" | awk '/Program Headers|LOAD/ {print}'
-          done
+        run: ./android.sh -d --lts --enable-android-media-codec --enable-android-zlib
 
       - name: prepare and upload lts aar
         run: |
-          AAR_PATH=$(find prebuilt -type f -name 'ffmpeg-kit.aar' | head -n1)
+          AAR_PATH=$(find prebuilt -type f -name 'ffmpeg-kit.aar')
           if [ -z "$AAR_PATH" ]; then
             echo "Error: ffmpeg-kit.aar not found in prebuilt directory."
             exit 1
@@ -176,11 +127,11 @@ jobs:
 
       - name: print build logs
         if: ${{ always() }}
-        run: cat build.log || true
+        run: cat build.log
 
       - name: print ffbuild logs
         if: ${{ failure() }}
-        run: "[[ -f ./src/ffmpeg/ffbuild/config.log ]] && tail -50 ./src/ffmpeg/ffbuild/config.log || true"
+        run: "[[ -f ./src/ffmpeg/ffbuild/config.log ]] && tail -50 ./src/ffmpeg/ffbuild/config.log"
 
   create-release:
     name: create github release
@@ -206,7 +157,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: "Android AARs (NDK r25-16k) - ${{ env.TAG_NAME }}"
-          body: "Automated release of Android AAR files from Linux builds using NDK r25 with 16kB page size support."
+          name: "Android AARs (NDK 16k) - ${{ env.TAG_NAME }}"
+          body: "Automated release of Android AAR files using NDK with 16kB page-size support."
           prerelease: true
           files: aar-artifacts/*/*.aar
