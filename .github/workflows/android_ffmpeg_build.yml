@@ -88,6 +88,12 @@ jobs:
             find . -type f -name build.log -exec echo "Found:" {} \; -exec tail -n 200 {} \;
           fi
 
+      - name: Show failing config.log (if any)
+        if: always()
+        run: |
+          echo "🔍 Searching for config.log files..."
+          find . -type f -name config.log -exec echo "--- {} ---" \; -exec tail -n 100 {} \;
+
       - name: Archive prebuilt AAR
         if: success()
         run: |
