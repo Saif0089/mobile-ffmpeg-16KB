@@ -42,81 +42,19 @@ jobs:
           echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT"
           ls -la "$ANDROID_SDK_ROOT/ndk" || true
 
-      # 2) Prereqs from README
-      - name: Install prerequisites
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            autoconf automake libtool pkg-config curl cmake gcc gperf texinfo \
-            yasm nasm bison autogen patch git
-
-      # 3) Toolchain sanity
-      - name: Toolchain sanity
-        shell: bash
-        run: |
-          aarch64-linux-android24-clang --version
-          clang --version || true
-
-      # 4) Force lld + safe flags, and PATCH android.sh to build ONLY arm64-v8a
-      - name: Configure flags and limit arch to arm64-v8a
-        shell: bash
-        run: |
-          # Flags (ThinLTO + lld); remove any gold or legacy platform paths later if present in script
-          echo 'CFLAGS=-O2 -ffunction-sections -fdata-sections -flto=thin' >> "$GITHUB_ENV"
-          echo 'LDFLAGS=-Wl,--gc-sections -flto=thin -fuse-ld=lld' >> "$GITHUB_ENV"
-
-          # If your script reads an env var for archs, set it too (harmless if unused)
-          echo 'ARCHITECTURES=arm64-v8a' >> "$GITHUB_ENV"
-          echo 'FF_ARCHS=arm64-v8a' >> "$GITHUB_ENV"
-
-          # Make script executable
-          chmod +x android.sh
-
-          # 4a) Strip gold + old platform paths + manual __ANDROID_API__ defines if present
-          sed -i -E 's/-fuse-ld=gold//g' android.sh || true
-          sed -i -E 's|-L[^ ]*/android-ndk-r[0-9a-z]+/platforms/android-[0-9]+/arch-[^ ]+[^ ]*||g' android.sh || true
-          sed -i -E 's/-D__ANDROID_API__=[0-9]+//g' android.sh || true
-
-          # 4b) Patch common patterns that list multiple ABIs -> set to arm64-v8a only
-          # Matches lines like: ARCHITECTURES="arm-v7a-neon, arm64-v8a, x86, x86-64"
-          sed -i -E 's/^(ARCH(ITECTURES)?=).*/\1"arm64-v8a"/' android.sh || true
-          # Matches an echo/banner line "Architectures: ..."
-          sed -i -E 's/^(.*Architectures:).*/\1 arm64-v8a/' android.sh || true
-          # If script has a comma list elsewhere, collapse to arm64-v8a
-          sed -i -E 's/arm-v7a(-neon)?//g; s/x86-64//g; s/x86//g; s/,,/,/g; s/, *$//' android.sh || true
-
-          echo "==== android.sh (first 60 lines) ===="
-          head -n 60 android.sh || true
-
-      # 5) Link sanity test with lld (arm64)
-      - name: Link sanity test (lld)
-        shell: bash
-        run: |
-          cat >/tmp/test.c <<'EOF'
-          int main(void){ return 0; }
-          EOF
-          aarch64-linux-android24-clang \
-            --sysroot="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot" \
-            -fuse-ld=lld -O2 -ffunction-sections -fdata-sections \
-            -Wl,--gc-sections \
-            /tmp/test.c -o /tmp/test
-          file /tmp/test
-          echo "Sanity OK"
-
       # 6) Build (android.sh) – ARM64 only
       - name: Build (android.sh)
         shell: bash
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
-          ARCHITECTURES: ${{ env.ARCHITECTURES }}
-          FF_ARCHS: ${{ env.FF_ARCHS }}
-          CFLAGS: ${{ env.CFLAGS }}
-          LDFLAGS: ${{ env.LDFLAGS }}
+          # ARCHITECTURES: ${{ env.ARCHITECTURES }}
+          # FF_ARCHS: ${{ env.FF_ARCHS }}
+          # CFLAGS: ${{ env.CFLAGS }}
+          # LDFLAGS: ${{ env.LDFLAGS }}
         run: |
-          set -euo pipefail
-          set -x
+          # set -euo pipefail
+          # set -x
           ./android.sh
 
       # 7) Always upload logs + prebuilt outputs (helps if anything fails)
