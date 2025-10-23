@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required for git describe
 
       # 1) Detect SDK/NDK on ubuntu-latest
       - name: Detect Android SDK/NDK
@@ -42,6 +44,11 @@ jobs:
           echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT"
           ls -la "$ANDROID_SDK_ROOT/ndk" || true
 
+      - name: Prepare git submodules
+        run: |
+          git submodule sync
+          git submodule update --init --recursive
+
       # 6) Build (android.sh) – ARM64 only
       - name: Build (android.sh)
         shell: bash
@@ -53,8 +60,6 @@ jobs:
           # CFLAGS: ${{ env.CFLAGS }}
           # LDFLAGS: ${{ env.LDFLAGS }}
         run: |
-          # set -euo pipefail
-          # set -x
           ./android.sh
 
       # 7) Always upload logs + prebuilt outputs (helps if anything fails)
