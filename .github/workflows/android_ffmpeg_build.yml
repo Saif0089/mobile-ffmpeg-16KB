@@ -60,6 +60,7 @@ jobs:
           # CFLAGS: ${{ env.CFLAGS }}
           # LDFLAGS: ${{ env.LDFLAGS }}
         run: |
+          export STRIP="$TOOLCHAIN/bin/llvm-strip"
           ./android.sh
 
       # 7) Always upload logs + prebuilt outputs (helps if anything fails)
