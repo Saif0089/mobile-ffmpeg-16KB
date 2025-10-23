@@ -70,10 +70,16 @@ jobs:
       # 7️⃣ Build MobileFFmpeg for Android
       - name: Build MobileFFmpeg
         run: |
-          export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+          export PATH="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
           export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
           export ANDROID_NDK=$ANDROID_NDK_ROOT
           export ANDROID_SDK=$ANDROID_HOME
+
+          export CFLAGS="$(printf '%s' "$CFLAGS" | sed -E 's/-fuse-ld=gold//g; s/-D__ANDROID_API__=[0-9]+//g')"
+          export LDFLAGS="$(printf '%s' "$LDFLAGS" | sed -E 's/-fuse-ld=gold//g; s|-L.*/android-ndk-r[0-9a-z]+/platforms/android-[0-9]+/arch-[^ ]+[^ ]*||g')"
+
+          export CFLAGS="$CFLAGS -flto=thin"
+          export LDFLAGS="$LDFLAGS -flto=thin -fuse-ld=lld"
 
           chmod +x android.sh
           ./android.sh
