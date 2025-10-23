@@ -1,0 +1,72 @@
+name: Build Android FFmpeg (API30–35, arm64, 16KB-ready)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "android.sh"
+      - ".github/workflows/android_ffmpeg_build.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      ANDROID_NDK_ROOT: ${{ github.workspace }}/android-ndk-r28c
+      API_LEVEL: 30 # Build native libs against Android 11 (minSdkVersion)
+      TARGET_SDK: 35 # Target latest Android 15 for Gradle
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java (for Gradle)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Download and extract Android NDK r28c
+        run: |
+          wget https://dl.google.com/android/repository/android-ndk-r28c-linux.zip
+          unzip -q android-ndk-r28c-linux.zip
+          echo "✅ NDK r28c extracted to $ANDROID_NDK_ROOT"
+
+      - name: Install required build tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y git unzip zip curl build-essential python3 openjdk-17-jdk
+
+      - name: Make build script executable
+        run: chmod +x android.sh
+
+      - name: Patch Gradle targetSdkVersion to 35 (if present)
+        run: |
+          if [ -f android/app/build.gradle ]; then
+            sed -i 's/targetSdkVersion [0-9]\+/targetSdkVersion 35/' android/app/build.gradle
+            sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 30/' android/app/build.gradle
+          fi
+
+      - name: Build FFmpeg (arm64-v8a only, API 30)
+        run: |
+          export API=$API_LEVEL
+          ./android.sh \
+            --disable-arm-v7a \
+            --disable-arm-v7a-neon \
+            --disable-x86 \
+            --disable-x86-64
+
+      - name: Archive prebuilt AAR
+        if: success()
+        run: |
+          mkdir -p build-output
+          cp -r prebuilt/android-aar/* build-output/
+          echo "✅ AAR copied to build-output"
+
+      - name: Upload AAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-ffmpeg-aar
+          path: build-output
