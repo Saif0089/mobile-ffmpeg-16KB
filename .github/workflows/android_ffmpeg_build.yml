@@ -75,7 +75,8 @@ jobs:
         run: |
           export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
           export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
-          export API=$API_LEVEL
+          export CC="aarch64-linux-android24-clang"
+          export CXX="aarch64-linux-android24-clang++"
           ./android.sh -d --lts --full --enable-gpl --disable-arm-v7a
 
       - name: Show build log (if exists)
