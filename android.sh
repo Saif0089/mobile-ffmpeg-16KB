@@ -67,10 +67,7 @@ ENABLED_LIBRARIES=(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 export BASEDIR=$(pwd)
 
-# USING API LEVEL 24 / Android 7.0 (NOUGAT)
-export MIN_API=30
-export MAX_API=35
-export API=$MIN_API  # Android 11–15 range
+export API=24
 
 RECONF_LIBRARIES=()
 REBUILD_LIBRARIES=()
