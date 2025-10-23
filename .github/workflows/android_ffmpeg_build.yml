@@ -21,6 +21,12 @@ jobs:
         with:
           fetch-depth: 0 # needed for git describe
 
+      - name: Prepare git submodules
+        run: |
+          sudo apt-get install -y git
+          git submodule sync
+          git submodule update --init --recursive
+
       - name: Set up Java (Gradle)
         uses: actions/setup-java@v4
         with:
@@ -74,6 +80,17 @@ jobs:
             --disable-arm-v7a-neon \
             --disable-x86 \
             --disable-x86-64
+
+      - name: Show build log (if exists)
+        if: always()
+        run: |
+          echo "🧾 build.log output:"
+          if [ -f build.log ]; then
+            cat build.log | tail -n 200
+          else
+            echo "⚠️ build.log not found in root, trying subdirectories..."
+            find . -type f -name build.log -exec echo "Found:" {} \; -exec tail -n 200 {} \;
+          fi
 
       - name: Archive prebuilt AAR
         if: success()
