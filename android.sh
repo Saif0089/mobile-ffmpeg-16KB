@@ -1,4 +1,5 @@
 #!/bin/bash
+BASEDIR=$(dirname "$0")
 echo -e "INFO: Confirmed NDK r28+ → 16KB page-safe toolchain.\n" >> ${BASEDIR}/build.log
 
 # ARCH INDEXES

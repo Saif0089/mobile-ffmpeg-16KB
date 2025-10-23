@@ -67,6 +67,7 @@ jobs:
 
       - name: Build FFmpeg (arm64-only, API 30)
         run: |
+          chmod +x android.sh
           export API=$API_LEVEL
           ./android.sh \
             --disable-arm-v7a \
