@@ -42,7 +42,12 @@ jobs:
           distribution: "adopt"
           java-version: "17"
       - name: prerequisites
-        run: ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall "cmake;3.10.2.4988404" "cmake;3.18.1"
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y \
+            autoconf automake libtool pkg-config curl git \
+            cmake gcc g++ gperf texinfo yasm nasm bison autogen patch make
+
+          ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall "cmake;3.10.2.4988404" "cmake;3.18.1"
       - name: set up android ndk r25 (16k support)
         run: |
           curl -L -s "https://dl.google.com/android/repository/android-ndk-r21e-linux-x86_64.zip" -o ndk.zip
@@ -62,13 +67,11 @@ jobs:
           export -f ndk-build
 
           # run the LTS debug build for arm64 only
-          ./android.sh --full --lts --debug \
+          ./android.sh --full \
             --disable-arm-v7a \
             --disable-x86 \
             --disable-x86-64 \
             --disable-arm-v7a-neon 
-            --enable-android-zlib \
-            --enable-android-media-codec
 
           # show final output
           ls -R
