@@ -54,11 +54,15 @@ jobs:
           # ensure proper working directory
           cd $GITHUB_WORKSPACE
 
-          # make sure the script uses correct NDK project path during ndk-build
-          sed -i 's|ndk-build|NDK_PROJECT_PATH=$(pwd)/android ndk-build|g' android.sh
+          # define a wrapper to safely inject NDK_PROJECT_PATH only at runtime
+          function ndk-build() {
+            NDK_PROJECT_PATH=$(pwd)/android $GITHUB_WORKSPACE/.ndk/android-ndk-r21e/ndk-build "$@"
+          }
+
+          export -f ndk-build
 
           # run the LTS debug build for arm64 only
-          ./android.sh --lts --debug \
+          ./android.sh --full --lts --debug \
             --disable-arm-v7a \
             --disable-x86 \
             --disable-x86-64 \
@@ -67,7 +71,7 @@ jobs:
             --enable-android-media-codec
 
           # show final output
-          ls -R android/lts/output
+          ls -R
 
       - name: prepare and upload lts aar
         run: |
