@@ -66,11 +66,9 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
 
-          # define an alias to safely inject NDK_PROJECT_PATH for all ndk-build calls
-          alias ndk-build="NDK_PROJECT_PATH=$(pwd)/android $GITHUB_WORKSPACE/.ndk/android-ndk-r21e/ndk-build"
-
-          # make sure the alias is available to all sub-commands
-          shopt -s expand_aliases
+          # set this once, globally for the entire script execution
+          export NDK_PROJECT_PATH=$(pwd)/android
+          echo "NDK_PROJECT_PATH is set to $NDK_PROJECT_PATH"
 
           # run the LTS debug build for arm64 only
           ./android.sh \
@@ -83,6 +81,10 @@ jobs:
       - name: Show outputs
         if: always()
         run: ls -lR android/lts/output || true
+
+      - name: cat applicationmk
+        if: always()
+        run: cat $(pwd)/android/jni/Application.mk
 
       - name: prepare and upload lts aar
         run: |
