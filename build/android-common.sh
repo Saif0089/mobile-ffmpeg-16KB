@@ -884,14 +884,14 @@ set_toolchain_clang_paths() {
 
     BUILD_HOST=$(get_build_host)
     
-    export AR=${BUILD_HOST}-ar
+    export AR=llvm-ar
     export CC=$(get_clang_target_host)-clang
     export CXX=$(get_clang_target_host)-clang++
 
     if [ "$1" == "x264" ]; then
         export AS=${CC}
     else
-        export AS=${BUILD_HOST}-as
+        export AS=${CC}
     fi
 
     case ${ARCH} in
@@ -900,9 +900,9 @@ set_toolchain_clang_paths() {
         ;;
     esac
 
-    export LD=${BUILD_HOST}-ld
-    export RANLIB=${BUILD_HOST}-ranlib
-    export STRIP=${BUILD_HOST}-strip
+    export LD=lld
+    export RANLIB=llvm-ranlib
+    export STRIP=llvm-strip
 
     export INSTALL_PKG_CONFIG_DIR="${BASEDIR}/prebuilt/android-$(get_target_build)/pkgconfig"
     export ZLIB_PACKAGE_CONFIG_PATH="${INSTALL_PKG_CONFIG_DIR}/zlib.pc"
