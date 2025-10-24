@@ -22,12 +22,15 @@ jobs:
         with:
           distribution: "adopt"
           java-version: "17"
+
+      - name: set up android sdk
+        uses: android-actions/setup-android@v3
       - name: Install build prerequisites
         run: |
           sudo apt-get update -y && sudo apt-get install -y \
             autoconf automake libtool pkg-config curl git \
             cmake gcc g++ gperf texinfo yasm nasm bison autogen patch make \
-            m4 perl
+            m4 perl build-essential libc6-dev libstdc++6
 
           # legacy symlinks for older libraries like shine
           sudo ln -sf /usr/bin/aclocal /usr/bin/aclocal-1.15
@@ -37,9 +40,9 @@ jobs:
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall \
             "cmake;3.10.2.4988404" "cmake;3.18.1" || true
 
-      - name: set up android ndk r27d (16k support)
+      - name: set up android ndk r25 (16k support)
         run: |
-          curl -L -s "https://dl.google.com/android/repository/android-ndk-r27d-linux.zip" -o ndk.zip
+          curl -L -s "https://dl.google.com/android/repository/android-ndk-r25c-linux.zip" -o ndk.zip
           if [ ! -f ndk.zip ]; then
             echo "Error: NDK download failed"
             exit 1
@@ -63,6 +66,11 @@ jobs:
           echo "NDK_PROJECT_PATH: $NDK_PROJECT_PATH"
           ls -la $ANDROID_NDK_ROOT || echo "NDK not found at expected path"
           ls -la .ndk/ || echo ".ndk directory not found"
+
+          # Check compiler availability
+          echo "Checking compiler availability:"
+          ls -la $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/ | grep clang || echo "Clang not found"
+          $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang --version || echo "Compiler test failed"
 
           # run the LTS debug build for arm64 only
           ./android.sh \
