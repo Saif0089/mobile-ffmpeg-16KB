@@ -80,16 +80,18 @@ jobs:
 
       - name: prepare and upload lts aar
         run: |
-          AAR_PATH=$(find prebuilt -type f -name 'ffmpeg-kit.aar')
+          AAR_PATH=$(find prebuilt -type f -name 'mobile-ffmpeg.aar')
           if [ -z "$AAR_PATH" ]; then
-            echo "Error: ffmpeg-kit.aar not found in prebuilt directory."
+            echo "Error: mobile-ffmpeg.aar not found in prebuilt directory."
+            echo "Available files in prebuilt directory:"
+            find prebuilt -type f -name '*.aar' || echo "No AAR files found"
             exit 1
           fi
-          mv "$AAR_PATH" "ffmpeg-kit-lts-ndk-r21e-16k.aar"
+          mv "$AAR_PATH" "mobile-ffmpeg-lts-ndk-r21e-16k.aar"
       - uses: actions/upload-artifact@v4
         with:
-          name: ffmpeg-kit-lts-16k-aar
-          path: ffmpeg-kit-lts-ndk-r21e-16k.aar
+          name: mobile-ffmpeg-lts-16k-aar
+          path: mobile-ffmpeg-lts-ndk-r21e-16k.aar
           if-no-files-found: error
       - name: print build logs
         if: ${{ always() }}
@@ -110,7 +112,7 @@ jobs:
     steps:
       - name: set release tag
         id: set_tag
-        run: echo "TAG_NAME=ffmpeg-kit-android-$(date +'%Y-%m-%dT%H-%M-%S')" >> $GITHUB_ENV
+        run: echo "TAG_NAME=mobile-ffmpeg-android-$(date +'%Y-%m-%dT%H-%M-%S')" >> $GITHUB_ENV
       - name: download all aar artifacts
         uses: actions/download-artifact@v4
         with:
