@@ -72,18 +72,13 @@ jobs:
           # make sure the alias is available to all sub-commands
           shopt -s expand_aliases
 
-          # run the LTS build for arm64 only
+          # run the LTS debug build for arm64 only
           ./android.sh \
-            --lts \
-            --debug \
-            --enable-arm64-v8a \
-            --disable-arm-v7a \
-            --disable-arm-v7a-neon \
-            --disable-x86 \
-            --disable-x86-64 \
-            --enable-android-zlib \
-            --enable-android-media-codec \
-            --disable-shine
+          --force \
+          --disable-arm-v7a \
+          --disable-x86-64 \
+          --disable-arm-v7a-neon \
+          --disable-x86 \
 
       - name: Show outputs
         if: always()
