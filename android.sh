@@ -616,7 +616,7 @@ APP_PLATFORM := android-${API}
 
 APP_CFLAGS := -O3 -DANDROID ${LTS_BUILD_FLAG}${BUILD_DATE} -Wall -Wno-deprecated-declarations -Wno-pointer-sign -Wno-switch -Wno-unused-result -Wno-unused-variable
 
-APP_LDFLAGS := -Wl,-z,max-page-size=16384,--hash-style=both
+APP_LDFLAGS := -Wl,-z,max-page-size=16384,-z,common-page-size=16384,--hash-style=both
 EOF
 }
 
@@ -869,11 +869,6 @@ if [[ ! -z ${ANDROID_ARCHITECTURES} ]]; then
 
   cd ${BASEDIR}/android 1>>${BASEDIR}/build.log 2>&1
 
-  # Set NDK_PROJECT_PATH to current directory for ndk-build if not already set
-  if [ -z "$NDK_PROJECT_PATH" ]; then
-    export NDK_PROJECT_PATH=.
-  fi
-  echo "Using NDK_PROJECT_PATH: $NDK_PROJECT_PATH"
   ${ANDROID_NDK_ROOT}/ndk-build -B 1>>${BASEDIR}/build.log 2>&1
 
   if [ $? -eq 0 ]; then

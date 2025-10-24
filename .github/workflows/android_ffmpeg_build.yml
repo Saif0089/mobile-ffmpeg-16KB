@@ -74,7 +74,7 @@ jobs:
         if: always()
         run: ls -lR android/lts/output || true
 
-      - name: cat applicationmk
+      - name: Show generated Application.mk
         if: always()
         run: cat $(pwd)/android/jni/Application.mk
 

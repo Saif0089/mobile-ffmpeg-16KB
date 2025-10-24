@@ -11,28 +11,11 @@ ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
         MY_ARMV7_NEON := true
     endif
 endif
-
-ifeq ("$(shell test -e $(MY_LOCAL_PATH)/../build/.lts && echo lts)","lts")
-    MY_LTS_POSTFIX := -lts
-else
-    MY_LTS_POSTFIX :=
-endif
-
-ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
-    ifeq ($(MY_ARMV7_NEON), true)
-        MY_BUILD_DIR := android-$(TARGET_ARCH)-neon$(MY_LTS_POSTFIX)
-    else
-        MY_BUILD_DIR := android-$(TARGET_ARCH)$(MY_LTS_POSTFIX)
-    endif
-else
-    MY_BUILD_DIR := android-$(TARGET_ARCH)$(MY_LTS_POSTFIX)
-endif
-
-FFMPEG_INCLUDES := $(MY_LOCAL_PATH)/../../prebuilt/$(MY_BUILD_DIR)/ffmpeg/include
-
 ifeq ($(MY_ARMV7_NEON), true)
+    FFMPEG_INCLUDES := $(MY_LOCAL_PATH)/../../prebuilt/android-$(TARGET_ARCH)/neon/ffmpeg/include
     $(call import-module, cpu-features/neon)
 else
+    FFMPEG_INCLUDES := $(MY_LOCAL_PATH)/../../prebuilt/android-$(TARGET_ARCH)/ffmpeg/include
     $(call import-module, cpu-features)
 endif
 
@@ -43,11 +26,7 @@ LOCAL_PATH := $(MY_LOCAL_PATH)/../app/src/main/cpp
 # DEFINE ARCH FLAGS
 ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
     MY_ARCH_FLAGS := ARM_V7A
-    ifeq ("$(shell test -e $(MY_LOCAL_PATH)/../build/.lts && echo lts)","lts")
-        MY_ARM_NEON := false
-    else
-        MY_ARM_NEON := true
-    endif
+    MY_ARM_NEON := false
 endif
 ifeq ($(TARGET_ARCH_ABI), arm64-v8a)
     MY_ARCH_FLAGS := ARM64_V8A
@@ -55,11 +34,9 @@ ifeq ($(TARGET_ARCH_ABI), arm64-v8a)
 endif
 ifeq ($(TARGET_ARCH_ABI), x86)
     MY_ARCH_FLAGS := X86
-    MY_ARM_NEON := true
 endif
 ifeq ($(TARGET_ARCH_ABI), x86_64)
     MY_ARCH_FLAGS := X86_64
-    MY_ARM_NEON := true
 endif
 
 include $(CLEAR_VARS)
@@ -73,12 +50,12 @@ LOCAL_STATIC_LIBRARIES := cpu-features
 LOCAL_ARM_NEON := ${MY_ARM_NEON}
 include $(BUILD_SHARED_LIBRARY)
 
-MY_SRC_FILES := mobileffmpeg.c mobileffprobe.c mobileffmpeg_exception.c fftools_cmdutils.c fftools_ffmpeg.c fftools_ffprobe.c fftools_ffmpeg_opt.c fftools_ffmpeg_hw.c fftools_ffmpeg_filter.c
-
 ifeq ($(TARGET_PLATFORM),android-16)
-    MY_SRC_FILES += android_lts_support.c
+    MY_SRC_FILES := mobileffmpeg.c mobileffprobe.c android_lts_support.c mobileffmpeg_exception.c fftools_cmdutils.c fftools_ffmpeg.c fftools_ffprobe.c fftools_ffmpeg_opt.c fftools_ffmpeg_hw.c fftools_ffmpeg_filter.c
 else ifeq ($(TARGET_PLATFORM),android-17)
-    MY_SRC_FILES += android_lts_support.c
+    MY_SRC_FILES := mobileffmpeg.c mobileffprobe.c android_lts_support.c mobileffmpeg_exception.c fftools_cmdutils.c fftools_ffmpeg.c fftools_ffprobe.c fftools_ffmpeg_opt.c fftools_ffmpeg_hw.c fftools_ffmpeg_filter.c
+else
+    MY_SRC_FILES := mobileffmpeg.c mobileffprobe.c mobileffmpeg_exception.c fftools_cmdutils.c fftools_ffmpeg.c fftools_ffprobe.c fftools_ffmpeg_opt.c fftools_ffmpeg_hw.c fftools_ffmpeg_filter.c
 endif
 
 MY_CFLAGS := -Wall -Werror -Wno-unused-parameter -Wno-switch -Wno-sign-compare
