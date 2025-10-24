@@ -11,11 +11,27 @@ ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
         MY_ARMV7_NEON := true
     endif
 endif
+ifeq ("$(shell test -e $(MY_LOCAL_PATH)/../build/.lts && echo lts)","lts")
+    MY_LTS_POSTFIX := -lts
+else
+    MY_LTS_POSTFIX :=
+endif
+
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+    ifeq ($(MY_ARMV7_NEON), true)
+        MY_BUILD_DIR := android-$(TARGET_ARCH)-neon$(MY_LTS_POSTFIX)
+    else
+        MY_BUILD_DIR := android-$(TARGET_ARCH)$(MY_LTS_POSTFIX)
+    endif
+else
+    MY_BUILD_DIR := android-$(TARGET_ARCH)$(MY_LTS_POSTFIX)
+endif
+
 ifeq ($(MY_ARMV7_NEON), true)
-    FFMPEG_INCLUDES := $(MY_LOCAL_PATH)/../../prebuilt/android-$(TARGET_ARCH)/neon/ffmpeg/include
+    FFMPEG_INCLUDES := $(MY_LOCAL_PATH)/../../prebuilt/$(MY_BUILD_DIR)/ffmpeg/include
     $(call import-module, cpu-features/neon)
 else
-    FFMPEG_INCLUDES := $(MY_LOCAL_PATH)/../../prebuilt/android-$(TARGET_ARCH)/ffmpeg/include
+    FFMPEG_INCLUDES := $(MY_LOCAL_PATH)/../../prebuilt/$(MY_BUILD_DIR)/ffmpeg/include
     $(call import-module, cpu-features)
 endif
 
@@ -26,7 +42,11 @@ LOCAL_PATH := $(MY_LOCAL_PATH)/../app/src/main/cpp
 # DEFINE ARCH FLAGS
 ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
     MY_ARCH_FLAGS := ARM_V7A
-    MY_ARM_NEON := false
+    ifeq ("$(shell test -e $(MY_LOCAL_PATH)/../build/.lts && echo lts)","lts")
+        MY_ARM_NEON := false
+    else
+        MY_ARM_NEON := true
+    endif
 endif
 ifeq ($(TARGET_ARCH_ABI), arm64-v8a)
     MY_ARCH_FLAGS := ARM64_V8A
@@ -34,9 +54,11 @@ ifeq ($(TARGET_ARCH_ABI), arm64-v8a)
 endif
 ifeq ($(TARGET_ARCH_ABI), x86)
     MY_ARCH_FLAGS := X86
+    MY_ARM_NEON := true
 endif
 ifeq ($(TARGET_ARCH_ABI), x86_64)
     MY_ARCH_FLAGS := X86_64
+    MY_ARM_NEON := true
 endif
 
 include $(CLEAR_VARS)
