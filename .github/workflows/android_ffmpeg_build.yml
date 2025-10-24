@@ -37,15 +37,32 @@ jobs:
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --uninstall \
             "cmake;3.10.2.4988404" "cmake;3.18.1" || true
 
-      - name: set up android ndk r25 (16k support)
+      - name: set up android ndk r27d (16k support)
         run: |
-          curl -L -s "https://dl.google.com/android/repository/android-ndk-r21e-linux-x86_64.zip" -o ndk.zip
+          curl -L -s "https://dl.google.com/android/repository/android-ndk-r27d-linux.zip" -o ndk.zip
+          if [ ! -f ndk.zip ]; then
+            echo "Error: NDK download failed"
+            exit 1
+          fi
           unzip -q -o ndk.zip -d .ndk
-          echo "ANDROID_NDK_ROOT=$PWD/.ndk/$(ls .ndk)" >> $GITHUB_ENV
+          NDK_DIR=$(ls .ndk)
+          if [ -z "$NDK_DIR" ]; then
+            echo "Error: NDK extraction failed"
+            exit 1
+          fi
+          echo "ANDROID_NDK_ROOT=$PWD/.ndk/$NDK_DIR" >> $GITHUB_ENV
+          echo "NDK_PROJECT_PATH=$PWD/android" >> $GITHUB_ENV
+          echo "NDK setup complete: $PWD/.ndk/$NDK_DIR"
 
       - name: Build FFmpeg (arm64-v8a only)
         run: |
           cd $GITHUB_WORKSPACE
+
+          # Debug: Show NDK version and paths
+          echo "ANDROID_NDK_ROOT: $ANDROID_NDK_ROOT"
+          echo "NDK_PROJECT_PATH: $NDK_PROJECT_PATH"
+          ls -la $ANDROID_NDK_ROOT || echo "NDK not found at expected path"
+          ls -la .ndk/ || echo ".ndk directory not found"
 
           # run the LTS debug build for arm64 only
           ./android.sh \
@@ -73,7 +90,7 @@ jobs:
           mv "$AAR_PATH" "ffmpeg-kit-lts-ndk-r25-16k.aar"
       - uses: actions/upload-artifact@v4
         with:
-          name: ffmpeg-kit-lts-aar
+          name: ffmpeg-kit-lts-16k-aar
           path: ffmpeg-kit-lts-ndk-r25-16k.aar
           if-no-files-found: error
       - name: print build logs
@@ -107,6 +124,6 @@ jobs:
         with:
           tag_name: ${{ env.TAG_NAME }}
           name: "Android AARs (NDK r25-16k) - ${{ env.TAG_NAME }}"
-          body: "Automated release of Android AAR files from Linux builds using NDK r25 with 16kB page size support."
+          body: "Automated release of Android AAR files from Linux builds using NDK r25 with 16KB page size support."
           prerelease: true
           files: aar-artifacts/*/*.aar
