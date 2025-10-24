@@ -869,6 +869,8 @@ if [[ ! -z ${ANDROID_ARCHITECTURES} ]]; then
 
   cd ${BASEDIR}/android 1>>${BASEDIR}/build.log 2>&1
 
+  # Set NDK_PROJECT_PATH to current directory for ndk-build
+  export NDK_PROJECT_PATH=.
   ${ANDROID_NDK_ROOT}/ndk-build -B 1>>${BASEDIR}/build.log 2>&1
 
   if [ $? -eq 0 ]; then

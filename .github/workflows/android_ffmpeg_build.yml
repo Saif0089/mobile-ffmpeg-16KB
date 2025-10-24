@@ -47,10 +47,6 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
 
-          # set this once, globally for the entire script execution
-          export NDK_PROJECT_PATH=$(pwd)/android
-          echo "NDK_PROJECT_PATH is set to $NDK_PROJECT_PATH"
-
           # run the LTS debug build for arm64 only
           ./android.sh \
           --force \
