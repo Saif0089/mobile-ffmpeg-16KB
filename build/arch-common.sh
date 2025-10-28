@@ -212,9 +212,9 @@ download_library_source() {
     SOURCE_TYPE="TAG"
     ;;
   ffmpeg)
-    LIB_REPO_URL="https://github.com/FFmpeg/FFmpeg"
-    SOURCE_ID="n8.0"                                          # TAG -> v8.0 Huffman
-    SOURCE_TYPE="TAG"
+    LIB_REPO_URL="https://github.com/tanersener/FFmpeg"
+    SOURCE_ID="d222da435e63a2665b85c0305ad2cf8a07b1af6d"      # COMMIT -> v4.4-dev-416
+    SOURCE_TYPE="COMMIT"
     ;;
   esac
 
