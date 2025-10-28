@@ -1,4 +1,4 @@
-# MobileFFmpeg [![Financial Contributors on Open Collective](https://opencollective.com/mobile-ffmpeg/all/badge.svg?label=financial+contributors)](https://opencollective.com/mobile-ffmpeg) ![GitHub release](https://img.shields.io/badge/release-v4.4-blue.svg) ![Maven Central](https://img.shields.io/maven-central/v/com.arthenica/mobile-ffmpeg-min) ![CocoaPods](https://img.shields.io/badge/pod-v4.4-blue.svg) [![Build Status](https://travis-ci.org/tanersener/mobile-ffmpeg.svg?branch=master)](https://travis-ci.org/tanersener/mobile-ffmpeg)
+# MobileFFmpeg [![Financial Contributors on Open Collective](https://opencollective.com/mobile-ffmpeg/all/badge.svg?label=financial+contributors)](https://opencollective.com/mobile-ffmpeg) ![GitHub release](https://img.shields.io/badge/release-v8.0-blue.svg) ![Maven Central](https://img.shields.io/maven-central/v/com.arthenica/mobile-ffmpeg-min) ![CocoaPods](https://img.shields.io/badge/pod-v8.0-blue.svg) [![Build Status](https://travis-ci.org/tanersener/mobile-ffmpeg.svg?branch=master)](https://travis-ci.org/tanersener/mobile-ffmpeg)
 
 FFmpeg for Android, iOS and tvOS. 
 
@@ -11,7 +11,7 @@ Not maintained anymore as explained in [What’s next for MobileFFmpeg?](https:/
 - Use binaries available at `Github`/`Maven Central`/`CocoaPods` or build your own version with external libraries you need
 - Supports
     - Android, iOS and tvOS
-    - FFmpeg `v3.4.x`, `v4.0.x`, `v4.1`, `v4.2` , `v4.3` and `v4.4-dev` releases
+    - FFmpeg `v8.0` (Huffman) release
     - 29 external libraries
     
         `chromaprint`, `fontconfig`, `freetype`, `fribidi`, `gmp`, `gnutls`, `kvazaar`, `lame`, `libaom`, `libass`, `libiconv`, `libilbc`, `libtheora`, `libvorbis`, `libvpx`, `libwebp`, `libxml2`, `opencore-amr`, `openh264`, `opus`, `sdl`, `shine`, `snappy`, `soxr`, `speex`, `tesseract`, `twolame`, `vo-amrwbenc`, `wavpack`
@@ -136,7 +136,7 @@ Please remember that some parts of `FFmpeg` are licensed under the `GPL` and onl
 1. Add MobileFFmpeg dependency to your `build.gradle` in `mobile-ffmpeg-<package name>` pattern.
     ```
     dependencies {
-        implementation 'com.arthenica:mobile-ffmpeg-full:4.4'
+        implementation 'com.arthenica:mobile-ffmpeg-full:8.0'
     }
     ```
 
@@ -272,12 +272,12 @@ Please remember that some parts of `FFmpeg` are licensed under the `GPL` and onl
 
     - iOS
     ```
-    pod 'mobile-ffmpeg-full', '~> 4.4'
+    pod 'mobile-ffmpeg-full', '~> 8.0'
     ```
 
     - tvOS
     ```
-    pod 'mobile-ffmpeg-tvos-full', '~> 4.4'
+    pod 'mobile-ffmpeg-tvos-full', '~> 8.0'
     ```
 
 2. Execute synchronous FFmpeg commands.
@@ -444,6 +444,7 @@ Exact version number is obtained using `git describe --tags`.
 
 |  MobileFFmpeg Version | FFmpeg Version | Release Date |
 | :----: | :----: |:----: |
+| [8.0](https://github.com/tanersener/mobile-ffmpeg/releases/tag/v8.0) | 8.0 (Huffman) | Oct 28, 2025 |
 | [4.4](https://github.com/tanersener/mobile-ffmpeg/releases/tag/v4.4) | 4.4-dev-416 | Jul 25, 2020 |
 | [4.4.LTS](https://github.com/tanersener/mobile-ffmpeg/releases/tag/v4.4.LTS) | 4.4-dev-416 | Jul 24, 2020 |
 | [4.3.2](https://github.com/tanersener/mobile-ffmpeg/releases/tag/v4.3.2) | 4.3-dev-2955 | Apr 15, 2020 |

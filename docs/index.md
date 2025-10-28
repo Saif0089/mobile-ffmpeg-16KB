@@ -99,7 +99,7 @@ Please remember that some parts of `FFmpeg` are licensed under the `GPL` and onl
 1. Add MobileFFmpeg dependency to your `build.gradle` in `mobile-ffmpeg-<package name>` pattern.
     ```
     dependencies {
-        implementation 'com.arthenica:mobile-ffmpeg-full:4.4'
+        implementation 'com.arthenica:mobile-ffmpeg-full:8.0'
     }
     ```
 
@@ -235,12 +235,12 @@ Please remember that some parts of `FFmpeg` are licensed under the `GPL` and onl
 
     - iOS
     ```
-    pod 'mobile-ffmpeg-full', '~> 4.4'
+    pod 'mobile-ffmpeg-full', '~> 8.0'
     ```
 
     - tvOS
     ```
-    pod 'mobile-ffmpeg-tvos-full', '~> 4.4'
+    pod 'mobile-ffmpeg-tvos-full', '~> 8.0'
     ```
 
 2. Execute synchronous FFmpeg commands.
