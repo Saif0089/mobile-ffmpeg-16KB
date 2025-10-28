@@ -78,8 +78,6 @@ jobs:
           --enable-x264 \
           --enable-x265 \
           --enable-xvidcore \
-          --enable-libx264 \
-          --enable-libx265 \
           --enable-openh264 \
           --enable-libaom \
           --enable-libvpx \
@@ -88,19 +86,8 @@ jobs:
           --enable-fontconfig \
           --enable-freetype \
           --enable-fribidi \
-          --enable-libiconv \
           --enable-libtheora \
           --enable-libvorbis \
-          --enable-libogg \
-          --enable-libpng \
-          --enable-jpeg \
-          --enable-giflib \
-          --enable-tiff \
-          --enable-expat \
-          --enable-libuuid \
-          --enable-nettle \
-          --enable-gnutls \
-          --enable-gmp \
           --enable-lame \
           --enable-opus \
           --enable-speex \
@@ -111,14 +98,15 @@ jobs:
           --enable-shine \
           --enable-snappy \
           --enable-soxr \
-          --enable-libsamplerate \
-          --enable-libsndfile \
           --enable-libilbc \
           --enable-kvazaar \
           --enable-chromaprint \
           --enable-sdl \
           --enable-tesseract \
-          --enable-leptonica \
+          --enable-gnutls \
+          --enable-gmp \
+          --enable-nettle \
+          --enable-libxml2 \
           --reconf-LIBRARY \
           --redownload-LIBRARY \
           --rebuild-LIBRARY
