@@ -62,8 +62,9 @@ jobs:
           echo "NDK_PROJECT_PATH: $NDK_PROJECT_PATH"
           ls -la $ANDROID_NDK_ROOT || echo "NDK not found at expected path"
 
-          # run the LTS debug build for arm64 only
+          # run the LTS debug build for arm64 only with all features enabled
           ./android.sh \
+          --lts \
           --force \
           --enable-gpl \
           --disable-arm-v7a \
@@ -71,6 +72,8 @@ jobs:
           --disable-arm-v7a-neon \
           --disable-x86 \
           --full \
+          --enable-android-media-codec \
+          --enable-android-zlib \
           --enable-libvidstab \
           --enable-rubberband \
           --enable-x264 \
